@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { RedisService } from './redisService.js';
 
-const HOLD_DURATION = 10; // seconds
+const HOLD_DURATION_SECONDS = 60;
 
 const seatDataSchema = z.object({
   status: z.enum(['available', 'reserved']),
@@ -56,12 +56,23 @@ export class SeatService {
     const userHolds = await this.redisService.keys(`seathold:${eventId}:*`);
     let userHoldCount = 0;
 
+    // Use pipeline to check all holds in parallel
+    const pipeline = this.redisService.createPipeline();
     for (const key of userHolds) {
-      const holdData = await this.redisService.hgetall(key);
-      if (holdData.userId === userId && holdData.status === 'held') {
-        userHoldCount++;
-        if (userHoldCount >= 5) {
-          throw new Error('Maximum hold limit reached');
+      pipeline.hgetall(key);
+    }
+    const holdResults = await pipeline.exec();
+
+    if (holdResults) {
+      for (const [err, result] of holdResults) {
+        if (!err && result) {
+          const holdData = seatHoldDataSchema.safeParse(result as Record<string, string>);
+          if (holdData.success && holdData.data.userId === userId && holdData.data.status === 'held') {
+            userHoldCount++;
+            if (userHoldCount >= 5) {
+              throw new Error('Maximum hold limit reached');
+            }
+          }
         }
       }
     }
@@ -76,46 +87,65 @@ export class SeatService {
     });
 
     // Set hold expiration
-    await this.redisService.expire(seatHoldKey, HOLD_DURATION);
+    await this.redisService.expire(seatHoldKey, HOLD_DURATION_SECONDS);
 
-    return { holdId, seatNumber, expiresIn: HOLD_DURATION };
+    return { holdId, seatNumber, expiresIn: HOLD_DURATION_SECONDS };
   }
 
   async reserveSeat(eventId: string, userId: string, seatNumber: number) {
     const seatKey = `seat:${eventId}:${seatNumber}`;
-    const rawSeatData = await this.redisService.hgetall(seatKey);
-    const seatData = seatDataSchema.safeParse(rawSeatData);
+    const seatHoldKey = `seathold:${eventId}:${seatNumber}`;
 
-    if (!seatData.success || Object.keys(rawSeatData).length === 0) {
+    // Use pipeline to get both seat and hold data in parallel
+    const pipeline = this.redisService.createPipeline();
+    pipeline.hgetall(seatKey);
+    pipeline.hgetall(seatHoldKey);
+    const results = await pipeline.exec();
+
+    if (!results) {
+      throw new Error('Failed to get seat data');
+    }
+
+    const [seatResult, holdResult] = results;
+    if (!seatResult || !holdResult) {
+      throw new Error('Failed to get seat data');
+    }
+
+    const [seatErr, seatData] = seatResult;
+    const [holdErr, holdData] = holdResult;
+
+    if (seatErr || holdErr) {
+      throw new Error('Failed to get seat data');
+    }
+
+    const parsedSeatData = seatDataSchema.safeParse(seatData as Record<string, string>);
+    const parsedHoldData = seatHoldDataSchema.safeParse(holdData as Record<string, string>);
+
+    if (!parsedSeatData.success || Object.keys(seatData as Record<string, string>).length === 0) {
       throw new Error('Seat not found');
     }
 
-    if (seatData.data.status !== 'available') {
+    if (parsedSeatData.data.status !== 'available') {
       throw new Error('Seat is not available');
     }
 
-    // Check if seat is being held by the same user
-    const seatHoldKey = `seathold:${eventId}:${seatNumber}`;
-    const rawSeatHoldData = await this.redisService.hgetall(seatHoldKey);
-    const seatHoldData = seatHoldDataSchema.safeParse(rawSeatHoldData);
-
-    if (!seatHoldData.success) {
+    if (!parsedHoldData.success) {
       throw new Error('Seat is not held');
     }
 
-    if (seatHoldData.data.userId !== userId) {
+    if (parsedHoldData.data.userId !== userId) {
       throw new Error('Seat is held by another user');
     }
 
-    // Reserve the seat
-    await this.redisService.hset(seatKey, {
+    // Use pipeline to update seat status and available seats count in parallel
+    const updatePipeline = this.redisService.createPipeline();
+    updatePipeline.hset(seatKey, {
       status: 'reserved',
       userId,
       reservedAt: Date.now(),
     });
-
-    // Update available seats count
-    await this.redisService.hincrby(`event:${eventId}`, 'availableSeats', -1);
+    updatePipeline.hincrby(`event:${eventId}`, 'availableSeats', -1);
+    await updatePipeline.exec();
 
     return { seatNumber, status: 'reserved' };
   }
@@ -131,15 +161,24 @@ export class SeatService {
     const seatKeys = await this.redisService.keys(`seat:${eventId}:*`);
     const availableSeats = [];
 
+    // Use pipeline to get all seat data in parallel
+    const pipeline = this.redisService.createPipeline();
     for (const key of seatKeys) {
-      const rawSeatData = await this.redisService.hgetall(key);
-      const seatData = seatDataSchema.safeParse(rawSeatData);
+      pipeline.hgetall(key);
+    }
+    const results = await pipeline.exec();
 
-      if (seatData.success && seatData.data.status === 'available') {
-        availableSeats.push({
-          seatNumber: parseInt(seatData.data.seatNumber),
-          status: seatData.data.status,
-        });
+    if (results) {
+      for (const [err, result] of results) {
+        if (!err && result) {
+          const seatData = seatDataSchema.safeParse(result as Record<string, string>);
+          if (seatData.success && seatData.data.status === 'available') {
+            availableSeats.push({
+              seatNumber: parseInt(seatData.data.seatNumber),
+              status: seatData.data.status,
+            });
+          }
+        }
       }
     }
 
