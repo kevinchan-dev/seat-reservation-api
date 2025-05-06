@@ -3,7 +3,7 @@ import { RedisService, BatchSetEntry, RedisHashData } from './redisService.js';
 
 export const eventSchema = z.object({
   name: z.string().min(1),
-  totalSeats: z.number().min(1).max(1000),
+  totalSeats: z.coerce.number().min(1).max(1000),
   availableSeats: z.coerce.number().min(0),
   createdAt: z.coerce.number(),
 });
