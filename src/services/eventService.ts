@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { RedisService, BatchSetEntry, RedisHashData } from './redisService.js';
 
-const eventSchema = z.object({
-  name: z.string(),
-  totalSeats: z.coerce.number().min(1).max(1000),
+export const eventSchema = z.object({
+  name: z.string().min(1),
+  totalSeats: z.number().min(1).max(1000),
   availableSeats: z.coerce.number().min(0),
   createdAt: z.coerce.number(),
 });

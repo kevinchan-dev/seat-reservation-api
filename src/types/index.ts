@@ -1,9 +1,11 @@
 import { FastifyInstance } from 'fastify';
-import { Redis } from 'ioredis';
+import { FastifyRedis } from '@fastify/redis';
+import { EventService } from '../services/eventService.js';
 
-export type FastifyInstanceWithRedis = FastifyInstance & {
-  redis: Redis;
-};
+export interface FastifyInstanceWithRedis extends FastifyInstance {
+  redis: FastifyRedis;
+  eventService?: EventService;
+}
 
 export interface Event {
   id: string;

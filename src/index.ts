@@ -5,15 +5,20 @@ import fastifySwaggerUi from '@fastify/swagger-ui';
 import eventsRoutes from './routes/events.js';
 import seatsRoutes from './routes/seats.js';
 import { FastifyInstanceWithRedis } from './types/index.js';
+import { config } from './config.js';
+import servicesPlugin from './plugins/services.js';
 
 const start = async () => {
   const fastify = Fastify() as FastifyInstanceWithRedis;
 
   // Register Redis plugin
   await fastify.register(fastifyRedis, {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    host: config.REDIS_HOST,
+    port: config.REDIS_PORT,
   });
+
+  // Register services plugin
+  await fastify.register(servicesPlugin);
 
   // Register Swagger
   await fastify.register(fastifySwagger, {
@@ -26,7 +31,7 @@ const start = async () => {
     },
   });
   await fastify.register(fastifySwaggerUi, {
-    routePrefix: '/documentation',
+    routePrefix: '/swagger',
     uiConfig: {
       docExpansion: 'full',
       deepLinking: false,

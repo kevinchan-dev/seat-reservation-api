@@ -1,8 +1,7 @@
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { RedisService } from './redisService.js';
-
-const HOLD_DURATION_SECONDS = 60;
+import { config } from '../config.js';
 
 const seatDataSchema = z.object({
   status: z.enum(['available', 'reserved']),
@@ -48,8 +47,14 @@ export class SeatService {
     const rawSeatHoldData = await this.redisService.hgetall(seatHoldKey);
     const seatHoldData = seatHoldDataSchema.safeParse(rawSeatHoldData);
 
-    if (seatHoldData.success && seatHoldData.data.userId !== userId) {
-      throw new Error('Seat is being held by another user');
+    if (seatHoldData.success) {
+      if (seatHoldData.data.userId !== userId) {
+        throw new Error('Seat is being held by another user');
+      } else {
+        // Refresh the hold
+        await this.redisService.expire(seatHoldKey, config.SEAT_HOLD_DURATION_SECONDS);
+        return { holdId: seatHoldData.data.holdId, seatNumber, expiresIn: config.SEAT_HOLD_DURATION_SECONDS };
+      }
     }
 
     // Check if user has reached the hold limit
@@ -69,7 +74,7 @@ export class SeatService {
           const holdData = seatHoldDataSchema.safeParse(result as Record<string, string>);
           if (holdData.success && holdData.data.userId === userId && holdData.data.status === 'held') {
             userHoldCount++;
-            if (userHoldCount >= 5) {
+            if (userHoldCount > config.MAX_HOLDS_PER_USER) {
               throw new Error('Maximum hold limit reached');
             }
           }
@@ -87,16 +92,16 @@ export class SeatService {
     });
 
     // Set hold expiration
-    await this.redisService.expire(seatHoldKey, HOLD_DURATION_SECONDS);
+    await this.redisService.expire(seatHoldKey, config.SEAT_HOLD_DURATION_SECONDS);
 
-    return { holdId, seatNumber, expiresIn: HOLD_DURATION_SECONDS };
+    return { holdId, seatNumber, expiresIn: config.SEAT_HOLD_DURATION_SECONDS };
   }
 
   async reserveSeat(eventId: string, userId: string, seatNumber: number) {
     const seatKey = `seat:${eventId}:${seatNumber}`;
     const seatHoldKey = `seathold:${eventId}:${seatNumber}`;
 
-    // Use pipeline to get both seat and hold data in parallel
+    // Use pipeline to get both seat and seat hold data in parallel
     const pipeline = this.redisService.createPipeline();
     pipeline.hgetall(seatKey);
     pipeline.hgetall(seatHoldKey);

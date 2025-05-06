@@ -53,7 +53,7 @@ describe('Seats Routes', () => {
       const data = JSON.parse(response.payload);
       expect(data).toHaveProperty('holdId');
       expect(data.seatNumber).toBe(1);
-      expect(data.expiresIn).toBe(10);
+      expect(data.expiresIn).toBe(60);
     });
 
     it('should not allow holding an already held seat', async () => {

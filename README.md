@@ -25,6 +25,44 @@ A REST API service for managing event seat reservations using Node.js, Fastify, 
   ```
 
 - `GET /api/events/:eventId` - Get event details
+  ```json
+  {
+    "eventId": "uuid",
+    "name": "Concert 2024",
+    "totalSeats": 100,
+    "availableSeats": 95,
+    "createdAt": 1234567890
+  }
+  ```
+
+- `GET /api/events` - List all events
+  ```json
+  {
+    "events": [
+      {
+        "eventId": "uuid-1",
+        "name": "Concert 2024",
+        "totalSeats": 100,
+        "availableSeats": 95,
+        "createdAt": 1234567890
+      },
+      {
+        "eventId": "uuid-2",
+        "name": "Theater Show",
+        "totalSeats": 50,
+        "availableSeats": 45,
+        "createdAt": 1234567891
+      }
+    ]
+  }
+  ```
+
+- `DELETE /api/events/:eventId` - Delete an event and all its associated data
+  ```json
+  {
+    "message": "Event deleted successfully"
+  }
+  ```
 
 ### Seats
 
@@ -56,43 +94,49 @@ A REST API service for managing event seat reservations using Node.js, Fastify, 
 ### Running the Application
 
 1. Clone the repository
-2. Run the application using Docker Compose:
+2. Copy `.env.example` to `.env` and adjust the values if needed:
+   ```bash
+   cp .env.example .env
+   ```
+3. Run the application using Docker Compose:
    ```bash
    docker-compose up
    ```
-3. The API will be available at `http://localhost:8080`
-4. Swagger UI is available at `http://localhost:8080/swagger`
+4. The API will be available at `http://localhost:8080`
+5. Swagger UI is available at `http://localhost:8080/documentation`
 
 ### Environment Variables
 
+The following environment variables can be configured in your `.env` file:
+
 - `REDIS_HOST` - Redis host (default: localhost)
 - `REDIS_PORT` - Redis port (default: 6379)
+- `PORT` - API server port (default: 8080)
+- `HOST` - API server host (default: 0.0.0.0)
+- `HOLD_DURATION` - Duration of seat holds in seconds (default: 10)
+- `MAX_HOLDS_PER_USER` - Maximum number of holds per user per event (default: 5)
 
 ## Design Decisions
 
 1. **Redis as Data Store**
-   - Chosen for its fast in-memory operations
+   - Chosen for the requirement and its fast in-memory operations
    - Built-in expiration support for seat holds
    - Atomic operations for concurrent access
 
 2. **Fastify Framework**
    - High performance
-   - Built-in schema validation
-   - Swagger documentation support
+   - Schema validation with Zod
+   - Swagger docs
 
 3. **Data Structure**
    - Events stored as Redis hashes
-   - Seats stored as Redis hashes with expiration
+   - Seats stored as Redis hashes, Seat holds with expiration
    - Keys follow pattern: `event:{eventId}`, `seat:{eventId}:{seatNumber}` and  `seathold:{eventId}:{seatNumber}`
 
-4. **Concurrency Handling**
-   - Redis atomic operations prevent race conditions
-   - Hold expiration ensures seats don't remain locked indefinitely
-
-5. **Error Handling**
-   - Input validation using Zod
-   - Proper HTTP status codes
-   - Detailed error messages
+4. **Performance Optimizations**
+   - Redis pipelining for batch operations
+   - Efficient key management
+   - Optimized data access patterns
 
 ## Bonus Features
 
