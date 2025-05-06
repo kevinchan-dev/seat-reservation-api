@@ -1,72 +1,86 @@
 import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
 import { FastifyInstanceWithRedis } from '../types/index.js';
+import { EventService } from '../services/eventService.js';
+import { RedisService } from '../services/redisService.js';
 
-const eventSchema = z.object({
-  totalSeats: z.number().min(10).max(1000),
+const createEventSchema = z.object({
   name: z.string().min(1),
+  totalSeats: z.number().min(1).max(1000),
 });
 
-type EventSchema = z.infer<typeof eventSchema>;
-
 export default async function (fastify: FastifyInstanceWithRedis) {
-  // Add custom error handler for validation errors
-  fastify.setErrorHandler((error, request, reply) => {
-    if (error.validation) {
-      return reply.code(400).send({ error: 'Invalid input', details: error.validation });
-    }
-    return reply.code(500).send({ error: 'Internal server error' });
-  });
+  const redisService = new RedisService(fastify.redis);
+  const eventService = new EventService(redisService);
 
-  // Create a new event
+  // Create event
   fastify.post(
     '/',
     {
       schema: {
         body: {
           type: 'object',
-          required: ['totalSeats', 'name'],
+          required: ['name', 'totalSeats'],
           properties: {
-            totalSeats: { type: 'number', minimum: 10, maximum: 1000 },
             name: { type: 'string', minLength: 1 },
+            totalSeats: { type: 'number', minimum: 1, maximum: 1000 },
           },
         },
       },
     },
-    async (request) => {
-      const { totalSeats, name } = request.body as EventSchema;
-      const eventId = uuidv4();
-
-      // Store event data in Redis
-      await fastify.redis.hset(`event:${eventId}`, {
-        totalSeats,
-        name,
-        availableSeats: totalSeats,
-        createdAt: Date.now(),
-      });
-
-      // Initialize seat statuses
-      for (let i = 1; i <= totalSeats; i++) {
-        await fastify.redis.hset(`seat:${eventId}:${i}`, {
-          status: 'available',
-          seatNumber: i,
-          eventId,
-        });
+    async (request, reply) => {
+      try {
+        const { name, totalSeats } = createEventSchema.parse(request.body);
+        const result = await eventService.createEvent(name, totalSeats);
+        return result;
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          reply.code(400).send({ error: 'Invalid input', details: error.errors });
+        } else {
+          reply.code(500).send({ error: 'Internal server error' });
+        }
       }
-
-      return { eventId, totalSeats, name };
     }
   );
 
-  // Get event details
+  // Get event
   fastify.get('/:eventId', async (request, reply) => {
-    const { eventId } = request.params as { eventId: string };
-    const eventData = await fastify.redis.hgetall(`event:${eventId}`);
-
-    if (!eventData || Object.keys(eventData).length === 0) {
-      return reply.code(404).send({ error: 'Event not found' });
+    try {
+      const { eventId } = request.params as { eventId: string };
+      const result = await eventService.getEvent(eventId);
+      return result;
+    } catch (error) {
+      if (error instanceof Error) {
+        const statusCode = error.message.includes('not found') ? 404 : 500;
+        reply.code(statusCode).send({ error: error.message });
+      } else {
+        reply.code(500).send({ error: 'Internal server error' });
+      }
     }
+  });
 
-    return eventData;
+  // List events
+  fastify.get('/', async (request, reply) => {
+    try {
+      const result = await eventService.listEvents();
+      return result;
+    } catch (error) {
+      reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Delete event
+  fastify.delete('/:eventId', async (request, reply) => {
+    try {
+      const { eventId } = request.params as { eventId: string };
+      const result = await eventService.deleteEvent(eventId);
+      return result;
+    } catch (error) {
+      if (error instanceof Error) {
+        const statusCode = error.message.includes('not found') ? 404 : 500;
+        reply.code(statusCode).send({ error: error.message });
+      } else {
+        reply.code(500).send({ error: 'Internal server error' });
+      }
+    }
   });
 }
