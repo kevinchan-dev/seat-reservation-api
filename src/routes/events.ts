@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
-import { z } from 'zod';
 import { FastifyInstanceWithRedis } from '../types/index.js';
+import * as eventService from '../services/eventService.js';
+import { RedisService } from '../services/redisService.js';
 
 const createEventSchema = {
   body: {
@@ -37,15 +38,17 @@ const deleteEventSchema = {
 
 export default async function eventsRoutes(fastify: FastifyInstance) {
   const typedFastify = fastify as FastifyInstanceWithRedis;
-  if (!typedFastify.eventService) {
-    throw new Error('EventService not initialized');
+  if (!typedFastify.redis) {
+    throw new Error('Redis not initialized');
   }
+
+  const redisService = new RedisService(typedFastify.redis);
 
   fastify.post('/', {
     schema: createEventSchema,
     handler: async (request, reply) => {
       const { name, totalSeats } = request.body as { name: string; totalSeats: number };
-      const event = await typedFastify.eventService!.createEvent(name, totalSeats);
+      const event = await eventService.createEvent(redisService, name, totalSeats);
       return reply.code(201).send(event);
     },
   });
@@ -54,7 +57,10 @@ export default async function eventsRoutes(fastify: FastifyInstance) {
     schema: getEventSchema,
     handler: async (request, reply) => {
       const { eventId } = request.params as { eventId: string };
-      const event = await typedFastify.eventService!.getEvent(eventId);
+      const event = await eventService.getEvent(redisService, eventId);
+      if (!event) {
+        return reply.code(404).send({ error: 'Event not found' });
+      }
       return reply.send(event);
     },
   });
@@ -62,7 +68,7 @@ export default async function eventsRoutes(fastify: FastifyInstance) {
   fastify.get('/', {
     schema: listEventsSchema,
     handler: async (request, reply) => {
-      const events = await typedFastify.eventService!.listEvents();
+      const events = await eventService.listEvents(redisService);
       return reply.send(events);
     },
   });
@@ -71,7 +77,7 @@ export default async function eventsRoutes(fastify: FastifyInstance) {
     schema: deleteEventSchema,
     handler: async (request, reply) => {
       const { eventId } = request.params as { eventId: string };
-      await typedFastify.eventService!.deleteEvent(eventId);
+      await eventService.deleteEvent(redisService, eventId);
       return reply.code(204).send();
     },
   });

@@ -33,7 +33,7 @@ describe('Events Routes', () => {
         },
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(201);
       const data = JSON.parse(response.payload);
       expect(data).toHaveProperty('eventId');
       expect(data.name).toBe('Test Event');

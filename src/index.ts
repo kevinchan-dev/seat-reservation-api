@@ -6,7 +6,6 @@ import eventsRoutes from './routes/events.js';
 import seatsRoutes from './routes/seats.js';
 import { FastifyInstanceWithRedis } from './types/index.js';
 import { config } from './config.js';
-import servicesPlugin from './plugins/services.js';
 
 const start = async () => {
   const fastify = Fastify() as FastifyInstanceWithRedis;
@@ -16,9 +15,6 @@ const start = async () => {
     host: config.REDIS_HOST,
     port: config.REDIS_PORT,
   });
-
-  // Register services plugin
-  await fastify.register(servicesPlugin);
 
   // Register Swagger
   await fastify.register(fastifySwagger, {
