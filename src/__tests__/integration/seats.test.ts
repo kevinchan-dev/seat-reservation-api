@@ -75,7 +75,7 @@ describe('Seats Routes', () => {
         },
       });
 
-      expect(response.statusCode).toBe(409);
+      expect(response.statusCode).toBe(403);
       const data = JSON.parse(response.payload);
       expect(data.error).toBe('Seat is being held by another user');
     });

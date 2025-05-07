@@ -164,6 +164,8 @@ export async function reserveSeat(
     reservedAt: Date.now(),
   });
   updatePipeline.hincrby(`event:${eventId}`, 'availableSeats', '-1');
+  // Delete the hold so the user can hold seats again
+  updatePipeline.del(`seathold:${eventId}:${seatNumber}`);
   await updatePipeline.exec();
 
   return { seatNumber, status: 'reserved' };

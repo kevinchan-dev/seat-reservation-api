@@ -116,13 +116,7 @@ export default async function routes(fastify: FastifyInstanceWithRedis) {
         } else if (error instanceof Error) {
           const statusCode = error.message.includes('not found')
             ? 404
-            : error.message.includes('not available')
-              ? 409
-              : error.message.includes('held by another user')
-                ? 409
-                : error.message.includes('Maximum hold limit')
-                  ? 403
-                  : 500;
+            : 403;
           reply.code(statusCode).send({ error: error.message });
         } else {
           reply.code(500).send({ error: 'Internal server error' });
@@ -155,13 +149,7 @@ export default async function routes(fastify: FastifyInstanceWithRedis) {
         } else if (error instanceof Error) {
           const statusCode = error.message.includes('not found')
             ? 404
-            : error.message.includes('not available')
-              ? 403
-              : error.message.includes('not held')
-                ? 403
-                : error.message.includes('held by another user')
-                  ? 403
-                  : 500;
+            : 403;
           reply.code(statusCode).send({ error: error.message });
         } else {
           reply.code(500).send({ error: 'Internal server error' });
@@ -178,7 +166,7 @@ export default async function routes(fastify: FastifyInstanceWithRedis) {
         return result;
       } catch (error) {
         if (error instanceof Error) {
-          const statusCode = error.message.includes('not found') ? 404 : 500;
+          const statusCode = error.message.includes('not found') ? 404 : 403;
           reply.code(statusCode).send({ error: error.message });
         } else {
           reply.code(500).send({ error: 'Internal server error' });
