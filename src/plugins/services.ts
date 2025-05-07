@@ -1,9 +1,14 @@
 import fp from 'fastify-plugin';
 import { FastifyInstanceWithRedis } from '../types/index.js';
 import { RedisService } from '../services/redisService.js';
-import { EventService } from '../services/eventService.js';
+import { createEvent, getEvent, listEvents, deleteEvent } from '../services/eventService.js';
 
 export default fp(async (fastify: FastifyInstanceWithRedis) => {
-  const redisService = new RedisService(fastify.redis);
-  fastify.eventService = new EventService(redisService);
+  const redisService = new RedisService(fastify.redis.redis);
+  fastify.eventService = {
+    createEvent: (name: string, totalSeats: number) => createEvent(redisService, name, totalSeats),
+    getEvent: (eventId: string) => getEvent(redisService, eventId),
+    listEvents: () => listEvents(redisService),
+    deleteEvent: (eventId: string) => deleteEvent(redisService, eventId),
+  };
 });
