@@ -111,7 +111,7 @@ export async function reserveSeat(
   eventId: string,
   userId: string,
   seatNumber: number
-) {
+): Promise<{ seatNumber: number; status: 'reserved' }> {
   const seatKey = `seat:${eventId}:${seatNumber}`;
   const seatHoldKey = `seathold:${eventId}:${seatNumber}`;
 
@@ -168,7 +168,7 @@ export async function reserveSeat(
   updatePipeline.del(`seathold:${eventId}:${seatNumber}`);
   await updatePipeline.exec();
 
-  return { seatNumber, status: 'reserved' };
+  return { seatNumber, status: 'reserved' as const };
 }
 
 export async function getAvailableSeats(redisService: RedisService, eventId: string) {

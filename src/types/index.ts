@@ -9,6 +9,11 @@ export interface FastifyInstanceWithRedis extends FastifyInstance {
     listEvents: () => Promise<{ events: Array<{ eventId: string; name: string; totalSeats: number; availableSeats: number; createdAt: number }> }>;
     deleteEvent: (eventId: string) => Promise<{ message: string }>;
   };
+  seatService?: {
+    holdSeat: (eventId: string, userId: string, seatNumber: number) => Promise<{ holdId: string; seatNumber: number; expiresIn: number }>;
+    reserveSeat: (eventId: string, userId: string, seatNumber: number) => Promise<{ seatNumber: number; status: 'reserved' }>;
+    getAvailableSeats: (eventId: string) => Promise<{ availableSeats: Array<{ seatNumber: number; status: 'available' }> }>;
+  };
 }
 
 export interface Event {
