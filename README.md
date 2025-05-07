@@ -88,10 +88,13 @@ A REST API service for managing event seat reservations using Node.js, Fastify, 
 
 ### Prerequisites
 
-- Docker
-- Docker Compose
+- Nodejs 20 or higher
+- Redis 7 or higher
+- Docker (optional)
 
 ### Running the Application
+
+#### Using Docker
 
 1. Clone the repository
 2. Copy `.env.example` to `.env` and adjust the values if needed:
@@ -103,7 +106,26 @@ A REST API service for managing event seat reservations using Node.js, Fastify, 
    docker-compose up
    ```
 4. The API will be available at `http://localhost:8080`
-5. Swagger UI is available at `http://localhost:8080/documentation`
+5. Swagger UI is available at `http://localhost:8080/swagger`
+
+#### Running Without Docker
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Copy `.env.example` to `.env` and adjust the values if needed:
+   ```bash
+   cp .env.example .env
+   ```
+4. Start Redis server (make sure Redis is installed and running)
+5. Run the application:
+   ```bash
+   npm start
+   ```
+6. The API will be available at `http://localhost:8080`
+7. Swagger UI is available at `http://localhost:8080/swagger`
 
 ### Environment Variables
 
@@ -111,9 +133,7 @@ The following environment variables can be configured in your `.env` file:
 
 - `REDIS_HOST` - Redis host (default: localhost)
 - `REDIS_PORT` - Redis port (default: 6379)
-- `PORT` - API server port (default: 8080)
-- `HOST` - API server host (default: 0.0.0.0)
-- `HOLD_DURATION` - Duration of seat holds in seconds (default: 10)
+- `SEAT_HOLD_DURATION_SECONDS` - Duration of seat holds in seconds (default: 60)
 - `MAX_HOLDS_PER_USER` - Maximum number of holds per user per event (default: 5)
 
 ## Design Decisions
