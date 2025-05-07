@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import Fastify from 'fastify';
 import fastifyRedis from '@fastify/redis';
-import eventsRoutes from './events.js';
+import routes from '../../routes.js';
 import { v4 as uuidv4 } from 'uuid';
-import { FastifyInstanceWithRedis } from './../types/index.js';
+import { FastifyInstanceWithRedis } from '../../types/index.js';
 
 describe('Events Routes', () => {
   let fastify: FastifyInstanceWithRedis;
@@ -15,7 +15,7 @@ describe('Events Routes', () => {
       port: parseInt(process.env.REDIS_PORT || '6379', 10),
     });
 
-    await fastify.register(eventsRoutes, { prefix: '/api/events' });
+    await fastify.register(routes, { prefix: '/api' });
   });
 
   afterEach(async () => {

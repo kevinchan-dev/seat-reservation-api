@@ -65,7 +65,7 @@ export async function createEvent(redisService: RedisService, name: string, tota
 export async function getEvent(redisService: RedisService, eventId: string) {
   const eventKey = redisService.getEventKey(eventId);
   const rawEventData = await redisService.hgetall(eventKey);
-  
+
   if (!rawEventData || Object.keys(rawEventData).length === 0) {
     return null;
   }

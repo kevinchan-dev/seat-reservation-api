@@ -22,7 +22,12 @@ export const seatHoldDataSchema = z.object({
 export type SeatData = z.infer<typeof seatDataSchema>;
 export type SeatHoldData = z.infer<typeof seatHoldDataSchema>;
 
-export async function holdSeat(redisService: RedisService, eventId: string, userId: string, seatNumber: number) {
+export async function holdSeat(
+  redisService: RedisService,
+  eventId: string,
+  userId: string,
+  seatNumber: number
+) {
   // Check if event exists
   const eventExists = await redisService.exists(`event:${eventId}`);
   if (!eventExists) {
@@ -53,7 +58,11 @@ export async function holdSeat(redisService: RedisService, eventId: string, user
     } else {
       // Refresh the hold
       await redisService.expire(seatHoldKey, config.SEAT_HOLD_DURATION_SECONDS);
-      return { holdId: seatHoldData.data.holdId, seatNumber, expiresIn: config.SEAT_HOLD_DURATION_SECONDS };
+      return {
+        holdId: seatHoldData.data.holdId,
+        seatNumber,
+        expiresIn: config.SEAT_HOLD_DURATION_SECONDS,
+      };
     }
   }
 
@@ -97,7 +106,12 @@ export async function holdSeat(redisService: RedisService, eventId: string, user
   return { holdId, seatNumber, expiresIn: config.SEAT_HOLD_DURATION_SECONDS };
 }
 
-export async function reserveSeat(redisService: RedisService, eventId: string, userId: string, seatNumber: number) {
+export async function reserveSeat(
+  redisService: RedisService,
+  eventId: string,
+  userId: string,
+  seatNumber: number
+) {
   const seatKey = `seat:${eventId}:${seatNumber}`;
   const seatHoldKey = `seathold:${eventId}:${seatNumber}`;
 

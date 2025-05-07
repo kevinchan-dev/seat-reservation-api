@@ -2,8 +2,7 @@ import Fastify from 'fastify';
 import fastifyRedis from '@fastify/redis';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
-import eventsRoutes from './routes/events.js';
-import seatsRoutes from './routes/seats.js';
+import routes from './routes.js';
 import { FastifyInstanceWithRedis } from './types/index.js';
 import { config } from './config.js';
 
@@ -45,8 +44,7 @@ const start = async () => {
   });
 
   // Register routes
-  await fastify.register(eventsRoutes, { prefix: '/api/events' });
-  await fastify.register(seatsRoutes, { prefix: '/api/seats' });
+  await fastify.register(routes, { prefix: '/api' });
 
   try {
     await fastify.listen({ port: 8080, host: '0.0.0.0' });

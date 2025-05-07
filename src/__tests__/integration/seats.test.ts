@@ -1,10 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import Fastify from 'fastify';
 import fastifyRedis from '@fastify/redis';
-import eventsRoutes from './events.js';
-import seatsRoutes from './seats.js';
+import routes from '../../routes.js';
 import { v4 as uuidv4 } from 'uuid';
-import { FastifyInstanceWithRedis, Seat } from '../types/index.js';
+import { FastifyInstanceWithRedis, Seat } from '../../types/index.js';
 
 describe('Seats Routes', () => {
   let fastify: FastifyInstanceWithRedis;
@@ -17,8 +16,7 @@ describe('Seats Routes', () => {
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379', 10),
     });
-    await fastify.register(eventsRoutes, { prefix: '/api/events' });
-    await fastify.register(seatsRoutes, { prefix: '/api/seats' });
+    await fastify.register(routes, { prefix: '/api' });
 
     // Create a test event
     const response = await fastify.inject({
@@ -42,7 +40,7 @@ describe('Seats Routes', () => {
     it('should hold a seat', async () => {
       const response = await fastify.inject({
         method: 'POST',
-        url: `/api/seats/${eventId}/hold`,
+        url: `/api/events/${eventId}/hold`,
         payload: {
           userId,
           seatNumber: 1,
@@ -60,7 +58,7 @@ describe('Seats Routes', () => {
       // First hold
       await fastify.inject({
         method: 'POST',
-        url: `/api/seats/${eventId}/hold`,
+        url: `/api/events/${eventId}/hold`,
         payload: {
           userId,
           seatNumber: 1,
@@ -70,7 +68,7 @@ describe('Seats Routes', () => {
       // Try to hold the same seat with a different user
       const response = await fastify.inject({
         method: 'POST',
-        url: `/api/seats/${eventId}/hold`,
+        url: `/api/events/${eventId}/hold`,
         payload: {
           userId: uuidv4(),
           seatNumber: 1,
@@ -87,7 +85,7 @@ describe('Seats Routes', () => {
       for (let i = 1; i <= 6; i++) {
         const response = await fastify.inject({
           method: 'POST',
-          url: `/api/seats/${eventId}/hold`,
+          url: `/api/events/${eventId}/hold`,
           payload: {
             userId,
             seatNumber: i,
@@ -109,7 +107,7 @@ describe('Seats Routes', () => {
     it('should reserve a seat', async () => {
       await fastify.inject({
         method: 'POST',
-        url: `/api/seats/${eventId}/hold`,
+        url: `/api/events/${eventId}/hold`,
         payload: {
           userId,
           seatNumber: 1,
@@ -118,7 +116,7 @@ describe('Seats Routes', () => {
 
       const response = await fastify.inject({
         method: 'POST',
-        url: `/api/seats/${eventId}/reserve`,
+        url: `/api/events/${eventId}/reserve`,
         payload: {
           userId,
           seatNumber: 1,
@@ -135,7 +133,7 @@ describe('Seats Routes', () => {
       // First reservation
       await fastify.inject({
         method: 'POST',
-        url: `/api/seats/${eventId}/reserve`,
+        url: `/api/events/${eventId}/reserve`,
         payload: {
           userId,
           seatNumber: 1,
@@ -145,7 +143,7 @@ describe('Seats Routes', () => {
       // Try to reserve the same seat
       const response = await fastify.inject({
         method: 'POST',
-        url: `/api/seats/${eventId}/reserve`,
+        url: `/api/events/${eventId}/reserve`,
         payload: {
           userId: uuidv4(),
           seatNumber: 1,
@@ -163,7 +161,7 @@ describe('Seats Routes', () => {
       // Reserve a few seats
       await fastify.inject({
         method: 'POST',
-        url: `/api/seats/${eventId}/hold`,
+        url: `/api/events/${eventId}/hold`,
         payload: {
           userId,
           seatNumber: 1,
@@ -172,7 +170,7 @@ describe('Seats Routes', () => {
 
       await fastify.inject({
         method: 'POST',
-        url: `/api/seats/${eventId}/reserve`,
+        url: `/api/events/${eventId}/reserve`,
         payload: {
           userId,
           seatNumber: 1,
@@ -181,7 +179,7 @@ describe('Seats Routes', () => {
 
       await fastify.inject({
         method: 'POST',
-        url: `/api/seats/${eventId}/hold`,
+        url: `/api/events/${eventId}/hold`,
         payload: {
           userId,
           seatNumber: 2,
@@ -190,7 +188,7 @@ describe('Seats Routes', () => {
 
       await fastify.inject({
         method: 'POST',
-        url: `/api/seats/${eventId}/reserve`,
+        url: `/api/events/${eventId}/reserve`,
         payload: {
           userId,
           seatNumber: 2,
@@ -199,7 +197,7 @@ describe('Seats Routes', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/api/seats/${eventId}/available`,
+        url: `/api/events/${eventId}/available`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -211,7 +209,7 @@ describe('Seats Routes', () => {
     it('should return 404 for non-existent event', async () => {
       const response = await fastify.inject({
         method: 'GET',
-        url: `/api/seats/${uuidv4()}/available`,
+        url: `/api/events/${uuidv4()}/available`,
       });
 
       expect(response.statusCode).toBe(404);

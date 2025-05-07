@@ -62,7 +62,9 @@ describe('SeatService', () => {
     });
 
     it('should throw error if seat not found', async () => {
-      await expect(seatService.holdSeat(redisService, eventId, userId, 999)).rejects.toThrow('Seat not found');
+      await expect(seatService.holdSeat(redisService, eventId, userId, 999)).rejects.toThrow(
+        'Seat not found'
+      );
     });
 
     it('should throw error if seat is not available', async () => {
@@ -136,7 +138,9 @@ describe('SeatService', () => {
     });
 
     it('should throw error if seat is not held', async () => {
-      await expect(seatService.reserveSeat(redisService, eventId, userId, 1)).rejects.toThrow('Seat is not held');
+      await expect(seatService.reserveSeat(redisService, eventId, userId, 1)).rejects.toThrow(
+        'Seat is not held'
+      );
     });
 
     it('should throw error if seat is held by another user', async () => {

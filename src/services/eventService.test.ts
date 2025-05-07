@@ -115,7 +115,9 @@ describe('EventService', () => {
     });
 
     it('should throw error if event not found', async () => {
-      await expect(eventService.deleteEvent(redisService, 'non-existent')).rejects.toThrow('Event not found');
+      await expect(eventService.deleteEvent(redisService, 'non-existent')).rejects.toThrow(
+        'Event not found'
+      );
     });
   });
 });
