@@ -122,10 +122,17 @@ A REST API service for managing event seat reservations using Node.js, Fastify, 
 4. Start Redis server (make sure Redis is installed and running)
 5. Run the application:
    ```bash
-   npm start
+   npm run dev
    ```
 6. The API will be available at `http://localhost:8080`
 7. Swagger UI is available at `http://localhost:8080/swagger`
+
+### Running tests
+
+```bash
+npm run test
+npm run test:integration
+```
 
 ### Environment Variables
 
@@ -162,8 +169,6 @@ The following environment variables can be configured in your `.env` file:
 
 1. **User Hold Limit**
    - Maximum of 5 holds per user per event
-   - Prevents users from holding too many seats
 
 2. **Hold Refresh**
-   - Allows extending hold duration
-   - Only available for seats held by the requesting user
+   - Allows extending hold duration, call the same endpoint with the same userId
