@@ -14,6 +14,31 @@ const createEventSchema = {
       totalSeats: { type: 'number', minimum: 1, maximum: 1000 },
     },
   },
+  response: {
+    201: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string' },
+        name: { type: 'string' },
+        totalSeats: { type: 'number' },
+        availableSeats: { type: 'number' },
+        createdAt: { type: 'number' },
+      },
+    },
+    400: {
+      type: 'object',
+      properties: {
+        error: { type: 'string' },
+        details: { type: 'array', items: { type: 'object' } },
+      },
+    },
+    500: {
+      type: 'object',
+      properties: {
+        error: { type: 'string' },
+      },
+    },
+  },
 };
 
 const getEventSchema = {
@@ -24,9 +49,60 @@ const getEventSchema = {
       eventId: { type: 'string' },
     },
   },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string' },
+        name: { type: 'string' },
+        totalSeats: { type: 'number' },
+        availableSeats: { type: 'number' },
+        createdAt: { type: 'number' },
+      },
+    },
+    404: {
+      type: 'object',
+      properties: {
+        error: { type: 'string' },
+      },
+    },
+    500: {
+      type: 'object',
+      properties: {
+        error: { type: 'string' },
+      },
+    },
+  },
 };
 
-const listEventsSchema = {};
+const listEventsSchema = {
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        events: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              eventId: { type: 'string' },
+              name: { type: 'string' },
+              totalSeats: { type: 'number' },
+              availableSeats: { type: 'number' },
+              createdAt: { type: 'number' },
+            },
+          },
+        },
+      },
+    },
+    500: {
+      type: 'object',
+      properties: {
+        error: { type: 'string' },
+      },
+    },
+  },
+};
 
 const deleteEventSchema = {
   params: {
@@ -34,6 +110,23 @@ const deleteEventSchema = {
     required: ['eventId'],
     properties: {
       eventId: { type: 'string' },
+    },
+  },
+  response: {
+    204: {
+      type: 'null',
+    },
+    404: {
+      type: 'object',
+      properties: {
+        error: { type: 'string' },
+      },
+    },
+    500: {
+      type: 'object',
+      properties: {
+        error: { type: 'string' },
+      },
     },
   },
 };
@@ -48,6 +141,107 @@ const reserveSeatSchema = z.object({
   userId: z.string().uuid(),
   seatNumber: z.number().min(1),
 });
+
+const seatResponseSchema = {
+  200: {
+    type: 'object',
+    properties: {
+      holdId: { type: 'string' },
+      seatNumber: { type: 'number' },
+      expiresIn: { type: 'number' },
+    },
+  },
+  400: {
+    type: 'object',
+    properties: {
+      error: { type: 'string' },
+      details: { type: 'array', items: { type: 'object' } },
+    },
+  },
+  403: {
+    type: 'object',
+    properties: {
+      error: { type: 'string' },
+    },
+  },
+  404: {
+    type: 'object',
+    properties: {
+      error: { type: 'string' },
+    },
+  },
+  500: {
+    type: 'object',
+    properties: {
+      error: { type: 'string' },
+    },
+  },
+};
+
+const reserveResponseSchema = {
+  200: {
+    type: 'object',
+    properties: {
+      seatNumber: { type: 'number' },
+      status: { type: 'string', enum: ['reserved'] },
+    },
+  },
+  400: {
+    type: 'object',
+    properties: {
+      error: { type: 'string' },
+      details: { type: 'array', items: { type: 'object' } },
+    },
+  },
+  403: {
+    type: 'object',
+    properties: {
+      error: { type: 'string' },
+    },
+  },
+  404: {
+    type: 'object',
+    properties: {
+      error: { type: 'string' },
+    },
+  },
+  500: {
+    type: 'object',
+    properties: {
+      error: { type: 'string' },
+    },
+  },
+};
+
+const availableSeatsResponseSchema = {
+  200: {
+    type: 'object',
+    properties: {
+      availableSeats: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            seatNumber: { type: 'number' },
+            status: { type: 'string', enum: ['available'] },
+          },
+        },
+      },
+    },
+  },
+  404: {
+    type: 'object',
+    properties: {
+      error: { type: 'string' },
+    },
+  },
+  500: {
+    type: 'object',
+    properties: {
+      error: { type: 'string' },
+    },
+  },
+};
 
 export default async function routes(fastify: FastifyInstanceWithRedis) {
   const redisService = new RedisService(fastify.redis);
@@ -102,6 +296,7 @@ export default async function routes(fastify: FastifyInstanceWithRedis) {
           seatNumber: { type: 'number', minimum: 1 },
         },
       },
+      response: seatResponseSchema,
     },
     handler: async (request, reply) => {
       try {
@@ -133,6 +328,7 @@ export default async function routes(fastify: FastifyInstanceWithRedis) {
           seatNumber: { type: 'number', minimum: 1 },
         },
       },
+      response: reserveResponseSchema,
     },
     handler: async (request, reply) => {
       try {
@@ -155,6 +351,9 @@ export default async function routes(fastify: FastifyInstanceWithRedis) {
   });
 
   fastify.get('/events/:eventId/available', {
+    schema: {
+      response: availableSeatsResponseSchema,
+    },
     handler: async (request, reply) => {
       try {
         const { eventId } = request.params as { eventId: string };
