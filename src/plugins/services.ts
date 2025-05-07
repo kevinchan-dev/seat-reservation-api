@@ -13,8 +13,10 @@ export default fp(async (fastify: FastifyInstanceWithRedis) => {
     deleteEvent: (eventId: string) => deleteEvent(redisService, eventId),
   };
   fastify.seatService = {
-    holdSeat: (eventId: string, userId: string, seatNumber: number) => holdSeat(redisService, eventId, userId, seatNumber),
-    reserveSeat: (eventId: string, userId: string, seatNumber: number) => reserveSeat(redisService, eventId, userId, seatNumber),
+    holdSeat: (eventId: string, userId: string, seatNumber: number) =>
+      holdSeat(redisService, eventId, userId, seatNumber),
+    reserveSeat: (eventId: string, userId: string, seatNumber: number) =>
+      reserveSeat(redisService, eventId, userId, seatNumber),
     getAvailableSeats: (eventId: string) => getAvailableSeats(redisService, eventId),
   };
 });

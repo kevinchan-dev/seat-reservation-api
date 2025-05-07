@@ -114,9 +114,7 @@ export default async function routes(fastify: FastifyInstanceWithRedis) {
         if (error instanceof z.ZodError) {
           reply.code(400).send({ error: 'Invalid input', details: error.errors });
         } else if (error instanceof Error) {
-          const statusCode = error.message.includes('not found')
-            ? 404
-            : 403;
+          const statusCode = error.message.includes('not found') ? 404 : 403;
           reply.code(statusCode).send({ error: error.message });
         } else {
           reply.code(500).send({ error: 'Internal server error' });
@@ -147,9 +145,7 @@ export default async function routes(fastify: FastifyInstanceWithRedis) {
         if (error instanceof z.ZodError) {
           reply.code(400).send({ error: 'Invalid input', details: error.errors });
         } else if (error instanceof Error) {
-          const statusCode = error.message.includes('not found')
-            ? 404
-            : 403;
+          const statusCode = error.message.includes('not found') ? 404 : 403;
           reply.code(statusCode).send({ error: error.message });
         } else {
           reply.code(500).send({ error: 'Internal server error' });
